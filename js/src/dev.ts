@@ -6,7 +6,8 @@ import {
   signTransactionInstructions,
 } from './utils';
 import { Schedule } from './state';
-import { create, TOKEN_VESTING_PROGRAM_ID } from './main';
+import { create } from './main';
+import { ASSOCIATED_TOKEN_PROGRAM_ID, Token, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 
 /**
  *
@@ -16,6 +17,23 @@ import { create, TOKEN_VESTING_PROGRAM_ID } from './main';
  *
  */
 
+/** Your RPC connection */
+const connection = new Connection('');
+
+/** ProgramId */
+const TOKEN_VESTING_PROGRAM_ID = new PublicKey('');
+
+/** Info about the source */
+const SOURCE_TOKEN_ACCOUNT = new PublicKey('');
+
+/** Info about the desintation 
+ * Since we're using the associated token account, make sure this is human/on the curve
+ */
+const DESTINATION_OWNER = new PublicKey('');
+
+/** Token info */
+const MINT = new PublicKey('');
+
 /** Path to your wallet */
 const WALLET_PATH = '';
 const wallet = Keypair.fromSecretKey(
@@ -23,54 +41,18 @@ const wallet = Keypair.fromSecretKey(
 );
 
 /** There are better way to generate an array of dates but be careful as it's irreversible */
-const DATES = [
-  new Date(2022, 12),
-  new Date(2023, 1),
-  new Date(2023, 2),
-  new Date(2023, 3),
-  new Date(2023, 4),
-  new Date(2023, 5),
-  new Date(2023, 6),
-  new Date(2023, 7),
-  new Date(2023, 8),
-  new Date(2023, 9),
-  new Date(2023, 10),
-  new Date(2023, 11),
-  new Date(2024, 12),
-  new Date(2024, 2),
-  new Date(2024, 3),
-  new Date(2024, 4),
-  new Date(2024, 5),
-  new Date(2024, 6),
-  new Date(2024, 7),
-  new Date(2024, 8),
-  new Date(2024, 9),
-  new Date(2024, 10),
-  new Date(2024, 11),
-  new Date(2024, 12),
-];
-
-/** Info about the desintation */
-const DESTINATION_OWNER = new PublicKey('');
-const DESTINATION_TOKEN_ACCOUNT = new PublicKey('');
-
-/** Token info */
-const MINT = new PublicKey('');
-const DECIMALS = 0;
-
-/** Info about the source */
-const SOURCE_TOKEN_ACCOUNT = new PublicKey('');
-
-/** Amount to give per schedule */
-const AMOUNT_PER_SCHEDULE = 0;
-
-/** Your RPC connection */
-const connection = new Connection('');
+type ScheduleArgs = {
+  date: Date,
+  amountAtomics: number,
+}
+const SCHEDULES: ScheduleArgs[] = [
+  { date: new Date("2021-12-23T11:00:00.000+08:00"), amountAtomics: 1_000}
+]
 
 /** Do some checks before sending the tokens */
-const checks = async () => {
+const checks = async (destinationTokenAccount: PublicKey) => {
   const tokenInfo = await connection.getParsedAccountInfo(
-    DESTINATION_TOKEN_ACCOUNT,
+    destinationTokenAccount,
   );
 
   // @ts-ignore
@@ -81,25 +63,23 @@ const checks = async () => {
   if (parsed.info.owner !== DESTINATION_OWNER.toBase58()) {
     throw new Error('Invalid owner');
   }
-  if (parsed.info.tokenAmount.decimals !== DECIMALS) {
-    throw new Error('Invalid decimals');
-  }
 };
 
 /** Function that locks the tokens */
 const lock = async () => {
-  await checks();
-  const schedules: Schedule[] = [];
-  for (let date of DATES) {
-    schedules.push(
-      new Schedule(
-        /** Has to be in seconds */
-        new Numberu64(date.getTime() / 1_000),
-        /** Don't forget to add decimals */
-        new Numberu64(AMOUNT_PER_SCHEDULE * Math.pow(10, DECIMALS)),
-      ),
-    );
-  }
+  const destinationTokenAccount = await Token.getAssociatedTokenAddress(
+    ASSOCIATED_TOKEN_PROGRAM_ID,
+    TOKEN_PROGRAM_ID,
+    MINT,
+    DESTINATION_OWNER
+  );
+  await checks(destinationTokenAccount);
+
+  const schedules: Schedule[] = SCHEDULES.map(({ date, amountAtomics }) => new Schedule(
+    new Numberu64(date.getTime() / 1_000),
+    new Numberu64(amountAtomics),
+  ));
+
   const seed = generateRandomSeed();
 
   console.log(`Seed: ${seed}`);
@@ -111,7 +91,7 @@ const lock = async () => {
     wallet.publicKey,
     wallet.publicKey,
     SOURCE_TOKEN_ACCOUNT,
-    DESTINATION_TOKEN_ACCOUNT,
+    destinationTokenAccount,
     MINT,
     schedules,
   );

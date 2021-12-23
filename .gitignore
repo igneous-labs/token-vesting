@@ -7,7 +7,6 @@ Cargo.lock
 js/lib
 
 cli/target
-cli/target/.rustc_info.json
 /node_modules
 
 js/dist
