@@ -28,6 +28,7 @@ const SOURCE_TOKEN_ACCOUNT = new PublicKey('');
 
 /** Info about the desintation 
  * Since we're using the associated token account, make sure this is human/on the curve
+ * The corresponding ATA for the MINT needs to be created BEFORE running this
  */
 const DESTINATION_OWNER = new PublicKey('');
 

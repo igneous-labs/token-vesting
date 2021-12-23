@@ -35,3 +35,10 @@ Fetching contract  r2p2mLJvyrTzetxxsttQ54CS1m18zMgYqKSRzxP9WpE
 ✅ Successfully changed destination
 🚚 Transaction signature: 4tgPgCdM5ubaSKNLKD1WrfAJPZgRajxRSnmcPkHcN1TCeCRmq3cUCYVdCzsYwr63JRf4D2K1UZnt8rwu2pkGxeYe
 ```
+
+## Quick and dirty using dev scripts
+
+For a quick and dirty way to create a new vesting contract
+1. Update parameters in `js/src/dev.ts`
+2. Update `SCHEDULES` in `js/src/dev.ts`
+3. `yarn dev`
